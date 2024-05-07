@@ -27,7 +27,7 @@ spawn(Collision)
 Player.CharacterAdded:Connect(function()
 	spawn(Collision)
 end)
-local function XYZ(part)
+local function XYZ(part) --get position where part should be
 	local ExtraX = 0
 	local ExtraZ = 0
 	local ExtraY = 0
@@ -79,7 +79,7 @@ local function PlaceBlock()
 				ui[Selected.Name].BackgroundColor3 = Color3.new(36/255, 36/255, 36/255)
 				Selected:Destroy()
 				Selected = nil
-			end
+			end -- Check if player is holding shift
 		end
 	end
 end
@@ -130,12 +130,12 @@ Mouse.Move:Connect(function()
 			Highlight.Parent = Mouse.Target.Parent
 		else
 			Highlight.Parent =game.ReplicatedStorage
-		end
+		end --if player is in delete mode then it shows a highlight
 	else
 		Highlight.Parent =game.ReplicatedStorage
 	end
 end)
-for i,Block in ipairs(Blocks) do
+for i,Block in ipairs(Blocks) do -- gets every model / blocks and puts them in viewportframe
 	local Img = PlaceHolder:Clone()
 	Img.Parent = ui
 	Img.Name = Block.Name
@@ -170,6 +170,8 @@ Mouse.Button1Up:Connect(function()
 		spawn(PlaceBlock)
 	end
 end)
+
+--Inputs
 UIS.InputBegan:Connect(function(Input,a)
 	if Input.KeyCode == Enum.KeyCode.LeftShift and not a then
 		Continue = true
@@ -199,6 +201,8 @@ UIS.InputEnded:Connect(function(Input,a)
 		end
 	end
 end)
+
+--turn on/off delete mode
 ui.Parent.DeleteMode.MouseButton1Click:Connect(function()
 	if not Delete then
 		if Selected then
