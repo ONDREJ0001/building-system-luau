@@ -1,1 +1,213 @@
-print("Test")
+local grid = 1
+local Player = game.Players.LocalPlayer
+local Mouse = Player:GetMouse()
+local ui = Player.PlayerGui:WaitForChild("ScreenGui").Frame.ScrollingFrame
+local PlaceHolder = game.ReplicatedStorage:WaitForChild("PlaceHolder")
+local Blocks = game.ReplicatedStorage:WaitForChild("Blocks"):GetChildren()
+local UIS = game:GetService("UserInputService")
+local Selected
+local valid = false
+local Rotate = 0
+local Tilt = 0
+local Continue
+local Delete
+local Highlight = Instance.new("Highlight")
+Highlight.FillTransparency = 0.5
+Highlight.OutlineColor = Color3.new()
+Highlight.OutlineTransparency = 0.2
+local function Collision()
+	for i,v in ipairs(Player.Character:GetDescendants()) do
+		if v:isA("Part") or v:isA("MeshPart") then
+			v.CollisionGroup = "Player"
+		end
+	end
+end
+
+spawn(Collision)
+Player.CharacterAdded:Connect(function()
+	spawn(Collision)
+end)
+local function XYZ(part)
+	local ExtraX = 0
+	local ExtraZ = 0
+	local ExtraY = 0
+	if part then
+		local TargetSurface = Mouse.TargetSurface
+		local Size = part.PrimaryPart.Size
+		if TargetSurface == Enum.NormalId.Back then
+			ExtraZ = (Size.Z / 2) 
+		elseif TargetSurface == Enum.NormalId.Front then
+			ExtraZ = -(Size.Z / 2) 
+		elseif TargetSurface == Enum.NormalId.Bottom then
+			ExtraY = -(Size.Y / 2) 
+		elseif TargetSurface == Enum.NormalId.Top then
+			ExtraY = (Size.Y / 2) 
+		elseif TargetSurface == Enum.NormalId.Left then
+			ExtraX = -(Size.X / 2) 
+		elseif TargetSurface == Enum.NormalId.Right then
+			ExtraX = (Size.X / 2) 
+		end
+	end
+	local X = math.ceil(Mouse.Hit.X / grid) *grid + ExtraX
+	local Y = math.ceil(Mouse.Hit.Y / grid) *grid + ExtraY
+	local Z = math.ceil(Mouse.Hit.Z / grid) *grid + ExtraZ
+	return Vector3.new(X,Y,Z)
+end
+local function DeleteMode()
+	Delete = true
+	ui.Parent.DeleteMode.Text = "Place Mode"
+	ui.Parent.DeleteMode.BackgroundColor3 = Color3.new(0.376471, 0.968627, 0.192157)
+end
+local function PlaceMode()
+	Delete = false
+	ui.Parent.DeleteMode.Text = "Delete Mode"
+	ui.Parent.DeleteMode.BackgroundColor3 = Color3.new(1,61/255,61/255)
+end
+local function PlaceBlock()
+	if Selected then
+		if #Selected.PrimaryPart:GetTouchingParts() == 0 then
+			local block = game.ReplicatedStorage.Blocks[Selected.Name]:Clone()
+			block.Parent = workspace.Blocks
+			block.PrimaryPart.CFrame = Selected.PrimaryPart.CFrame
+			block.PrimaryPart.CollisionGroup = "Default"
+			for i,v in ipairs(block:GetChildren()) do
+				if v:isA('Part') or v:isA('MeshPart') then
+					v.CanCollide = true
+				end
+			end
+			if not Continue then
+				ui[Selected.Name].BackgroundColor3 = Color3.new(36/255, 36/255, 36/255)
+				Selected:Destroy()
+				Selected = nil
+			end
+		end
+	end
+end
+local function DeSelect(img)
+	Selected:Destroy()
+	img.BackgroundColor3 = Color3.new(36/255, 36/255, 36/255)
+	Selected=  nil
+end
+
+local function Select(img,Block)
+	if Selected then
+		Selected:Destroy()
+		ui[Selected.Name].BackgroundColor3 = Color3.new(36/255, 36/255, 36/255)
+	end
+ 	local Block = Block:Clone()
+	Mouse.TargetFilter = Block
+	Block.Parent = workspace.Blocks
+	for i,v in ipairs(Block:GetChildren()) do
+		if v:isA('BasePart') then
+			v.Material = Enum.Material.ForceField
+		end
+	end
+	Selected = Block
+	img.BackgroundColor3 = Color3.new(43/255, 202/255, 19/255)
+end
+local function setpos()
+	if Selected then
+		if #Selected.PrimaryPart:GetTouchingParts() > 0 then
+			valid = false
+			for i,v in ipairs(Selected:GetChildren()) do
+				v.Color = Color3.new(1, 0.188235, 0.188235)
+			end
+		else
+			valid = true
+			for i,v in ipairs(Selected:GetChildren()) do
+				v.Color = Color3.new(0.113725, 0.827451, 0.0352941)
+			end
+		end
+		Selected.PrimaryPart.CFrame = CFrame.new(XYZ(Selected)) * CFrame.Angles(0,math.rad(Rotate),math.rad(Tilt))
+	end
+end
+Mouse.Move:Connect(function()
+	if Selected then
+		spawn(setpos)
+	end
+	if Delete then
+		if Mouse.Target and Mouse.Target.Parent.Parent == workspace.Blocks then
+			Highlight.Parent = Mouse.Target.Parent
+		else
+			Highlight.Parent =game.ReplicatedStorage
+		end
+	else
+		Highlight.Parent =game.ReplicatedStorage
+	end
+end)
+for i,Block in ipairs(Blocks) do
+	local Img = PlaceHolder:Clone()
+	Img.Parent = ui
+	Img.Name = Block.Name
+	local ImgBlock = Block:Clone()
+	ImgBlock.Parent = workspace
+	ImgBlock.PrimaryPart.CFrame = CFrame.new(Vector3.new(0,0,0))
+	task.wait()
+	ImgBlock.Parent = Img	
+	Img.ImageButton.MouseButton1Click:Connect(function()
+		if Delete then
+			spawn(PlaceMode)
+		end
+		local name
+		if Selected then
+			name = Selected.Name
+		end
+		if name ~= Block.Name then
+			Select(Img,Block)
+		else
+			DeSelect(Img)
+		end
+	end)
+end
+
+Mouse.Button1Up:Connect(function()
+	if Delete then
+		if Mouse.Target and Mouse.Target.Parent.Parent == workspace.Blocks then
+			Highlight.Parent = game.ReplicatedStorage
+			Mouse.Target.Parent:Destroy()
+		end
+	else
+		spawn(PlaceBlock)
+	end
+end)
+UIS.InputBegan:Connect(function(Input,a)
+	if Input.KeyCode == Enum.KeyCode.LeftShift and not a then
+		Continue = true
+	end
+end)
+UIS.InputEnded:Connect(function(Input,a)
+	if Input.KeyCode == Enum.KeyCode.R and not a then
+		Rotate += 45
+		if Selected then
+			spawn(setpos)
+		end
+	end
+	if Input.KeyCode == Enum.KeyCode.LeftShift and not a then
+		Continue = false
+	end
+	if Input.KeyCode == Enum.KeyCode.T and not a then
+		Tilt += 45
+		if Selected then
+			spawn(setpos)
+		end
+	end
+	if Input.KeyCode == Enum.KeyCode.Q and not a then
+		if Selected then
+			ui[Selected.Name].BackgroundColor3 = Color3.new(36/255, 36/255, 36/255)
+			Selected:Destroy()
+			Selected = nil
+		end
+	end
+end)
+ui.Parent.DeleteMode.MouseButton1Click:Connect(function()
+	if not Delete then
+		if Selected then
+			ui[Selected.Name].BackgroundColor3 = Color3.new(36/255, 36/255, 36/255)
+			Selected:Destroy()
+			Selected = nil
+		end
+		spawn(DeleteMode)
+	else
+		spawn(PlaceMode)
+	end
+end)
