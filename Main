@@ -1,10 +1,12 @@
-local grid = 1
+-- Note: only player can see this if you want to make it so everyone in the server sees it use remote event
+
+local grid = 1 
 local Player = game.Players.LocalPlayer
 local Mouse = Player:GetMouse()
-local ui = Player.PlayerGui:WaitForChild("ScreenGui").Frame.ScrollingFrame
-local PlaceHolder = game.ReplicatedStorage:WaitForChild("PlaceHolder")
-local Blocks = game.ReplicatedStorage:WaitForChild("Blocks"):GetChildren()
-local UIS = game:GetService("UserInputService")
+local ui = Player.PlayerGui:WaitForChild("ScreenGui").Frame.ScrollingFrame -- this is where viewportframes with blocks will be placed
+local PlaceHolder = game.ReplicatedStorage:WaitForChild("PlaceHolder") -- gets viewport frame
+local Blocks = game.ReplicatedStorage:WaitForChild("Blocks"):GetChildren() -- gets chiildren of folder blocks so i can loop it
+local UIS = game:GetService("UserInputService") 
 local Selected
 local valid = false
 local Rotate = 0
@@ -14,19 +16,19 @@ local Delete
 local Highlight = Instance.new("Highlight")
 Highlight.FillTransparency = 0.5
 Highlight.OutlineColor = Color3.new()
-Highlight.OutlineTransparency = 0.2
+Highlight.OutlineTransparency = 0.2 -- highlight whenever player hovers over the block with mouse
 local function Collision()
 	for i,v in ipairs(Player.Character:GetDescendants()) do
 		if v:isA("Part") or v:isA("MeshPart") then
-			v.CollisionGroup = "Player"
+			v.CollisionGroup = "Player" --Sets player collision group to Player so it doesn't collide with blocks that is currently being placed by player
 		end
 	end
 end
 
 spawn(Collision)
 Player.CharacterAdded:Connect(function()
-	spawn(Collision)
-end)
+	spawn(Collision) 
+end) -- whenever player resets it spawns the function
 local function XYZ(part) --get position where part should be
 	local ExtraX = 0
 	local ExtraZ = 0
@@ -46,46 +48,44 @@ local function XYZ(part) --get position where part should be
 			ExtraX = -(Size.X / 2) 
 		elseif TargetSurface == Enum.NormalId.Right then
 			ExtraX = (Size.X / 2) 
-		end
+		end -- this is so whenever player hovers over surface so it isn't stuck in it and instead placed on top of it
 	end
 	local X = math.ceil(Mouse.Hit.X / grid) *grid + ExtraX
 	local Y = math.ceil(Mouse.Hit.Y / grid) *grid + ExtraY
 	local Z = math.ceil(Mouse.Hit.Z / grid) *grid + ExtraZ
-	return Vector3.new(X,Y,Z)
+	return Vector3.new(X,Y,Z) -- returns the position so it can be easily accesed
 end
+
+--turns on delete mode
 local function DeleteMode()
 	Delete = true
 	ui.Parent.DeleteMode.Text = "Place Mode"
 	ui.Parent.DeleteMode.BackgroundColor3 = Color3.new(0.376471, 0.968627, 0.192157)
 end
+--turns off delete mode
 local function PlaceMode()
 	Delete = false
 	ui.Parent.DeleteMode.Text = "Delete Mode"
 	ui.Parent.DeleteMode.BackgroundColor3 = Color3.new(1,61/255,61/255)
-end
+end 
 local function PlaceBlock()
-	if Selected then
-		if #Selected.PrimaryPart:GetTouchingParts() == 0 then
+	if Selected then -- Checks if player is equipping a block
+		if #Selected.PrimaryPart:GetTouchingParts() == 0 then -- Checks if The hitbox of a part is touching a part
 			local block = game.ReplicatedStorage.Blocks[Selected.Name]:Clone()
 			block.Parent = workspace.Blocks
-			block.PrimaryPart.CFrame = Selected.PrimaryPart.CFrame
+			block.PrimaryPart.CFrame = Selected.PrimaryPart.CFrame -- Sets CFrame of placed block to block that is player currently selecting
 			block.PrimaryPart.CollisionGroup = "Default"
-			for i,v in ipairs(block:GetChildren()) do
-				if v:isA('Part') or v:isA('MeshPart') then
-					v.CanCollide = true
-				end
-			end
 			if not Continue then
 				ui[Selected.Name].BackgroundColor3 = Color3.new(36/255, 36/255, 36/255)
 				Selected:Destroy()
 				Selected = nil
-			end -- Check if player is holding shift
+			end -- Checks if player is holding shift
 		end
 	end
 end
-local function DeSelect(img)
+local function DeSelect(img) -- whenever player presses Q it unselects the block
 	Selected:Destroy()
-	img.BackgroundColor3 = Color3.new(36/255, 36/255, 36/255)
+	img.BackgroundColor3 = Color3.new(36/255, 36/255, 36/255) -- sets image of the block to grey
 	Selected=  nil
 end
 
@@ -93,7 +93,7 @@ local function Select(img,Block)
 	if Selected then
 		Selected:Destroy()
 		ui[Selected.Name].BackgroundColor3 = Color3.new(36/255, 36/255, 36/255)
-	end
+	end  -- checks if player is selecting a block if so, it deletes it
  	local Block = Block:Clone()
 	Mouse.TargetFilter = Block
 	Block.Parent = workspace.Blocks
@@ -101,36 +101,36 @@ local function Select(img,Block)
 		if v:isA('BasePart') then
 			v.Material = Enum.Material.ForceField
 		end
-	end
+	end -- Turns every part into ForceField
 	Selected = Block
-	img.BackgroundColor3 = Color3.new(43/255, 202/255, 19/255)
+	img.BackgroundColor3 = Color3.new(43/255, 202/255, 19/255) -- makes the frame green
 end
 local function setpos()
 	if Selected then
-		if #Selected.PrimaryPart:GetTouchingParts() > 0 then
+		if #Selected.PrimaryPart:GetTouchingParts() > 0 then -- Checks if The hitbox of a part is touching a part if so  it makes the parts inside of it red and turns valid into nil
 			valid = false
 			for i,v in ipairs(Selected:GetChildren()) do
 				v.Color = Color3.new(1, 0.188235, 0.188235)
 			end
-		else
+		else -- if it doesnt touch another part then it turns valid into true and sets color of it into green
 			valid = true
 			for i,v in ipairs(Selected:GetChildren()) do
 				v.Color = Color3.new(0.113725, 0.827451, 0.0352941)
 			end
 		end
-		Selected.PrimaryPart.CFrame = CFrame.new(XYZ(Selected)) * CFrame.Angles(0,math.rad(Rotate),math.rad(Tilt))
+		Selected.PrimaryPart.CFrame = CFrame.new(XYZ(Selected)) * CFrame.Angles(0,math.rad(Rotate),math.rad(Tilt)) -- Sets the CFrame of it into required XYZ position
 	end
 end
 Mouse.Move:Connect(function()
 	if Selected then
 		spawn(setpos)
 	end
-	if Delete then
-		if Mouse.Target and Mouse.Target.Parent.Parent == workspace.Blocks then
+	if Delete then --if player is in delete mode then it shows a highlight
+		if Mouse.Target and Mouse.Target.Parent.Parent == workspace.Blocks then 
 			Highlight.Parent = Mouse.Target.Parent
 		else
 			Highlight.Parent =game.ReplicatedStorage
-		end --if player is in delete mode then it shows a highlight
+		end
 	else
 		Highlight.Parent =game.ReplicatedStorage
 	end
@@ -142,9 +142,9 @@ for i,Block in ipairs(Blocks) do -- gets every model / blocks and puts them in v
 	local ImgBlock = Block:Clone()
 	ImgBlock.Parent = workspace
 	ImgBlock.PrimaryPart.CFrame = CFrame.new(Vector3.new(0,0,0))
-	task.wait()
+	task.wait() --this is so it doenst show only primarypart of it in viewportframe
 	ImgBlock.Parent = Img	
-	Img.ImageButton.MouseButton1Click:Connect(function()
+	Img.ImageButton.MouseButton1Click:Connect(function() -- makes the viewportframe clickable
 		if Delete then
 			spawn(PlaceMode)
 		end
@@ -160,10 +160,10 @@ for i,Block in ipairs(Blocks) do -- gets every model / blocks and puts them in v
 	end)
 end
 
-Mouse.Button1Up:Connect(function()
+Mouse.Button1Up:Connect(function() -- Delete mode / placing block
 	if Delete then
 		if Mouse.Target and Mouse.Target.Parent.Parent == workspace.Blocks then
-			Highlight.Parent = game.ReplicatedStorage
+			Highlight.Parent = game.ReplicatedStorage -- this is so highlight doesnt get deleted aswell
 			Mouse.Target.Parent:Destroy()
 		end
 	else
@@ -202,7 +202,7 @@ UIS.InputEnded:Connect(function(Input,a)
 	end
 end)
 
---turn on/off delete mode
+--turns on/off delete mode
 ui.Parent.DeleteMode.MouseButton1Click:Connect(function()
 	if not Delete then
 		if Selected then
